@@ -2,6 +2,14 @@
 __pycache__/
 *.py[cod]
 
+.idea/
+venv/
+
+activate
+
+*.wav
+*.csv
+
 # C extensions
 *.so
 
