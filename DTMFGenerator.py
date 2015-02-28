@@ -3,10 +3,7 @@ from math import pi, sin
 import wave
 import logging
 import struct
-import time
 import os
-
-__all__ = ['create_dtmf_wave_file']
 
 ROW_FREQ = (697, 770, 852, 941)
 COL_FREQ = (1209, 1336, 1477, 1633)
@@ -51,6 +48,9 @@ class DTMF:
         If both are supplied, it tries to parse the json_string. If it does, it uses that. If there are errors, it
         validates the list and tries to use that. Basically input_string takes precedence.
 
+        General workflow would be setting dtmf_sequence and calling generate_raw_data. This data can then be saved to a
+        .wav file or compressed and saved as other, smaller, file formats.
+
         :param input_list: list of lists or tuples of the form [['A', 100], ['S', 50], ['2', 100], ['S', 50]]
         :param input_string: json_string of the form '[["A", 100], ["S", 50], ["2", 100], ["S", 50]]'
         """
@@ -84,29 +84,6 @@ class DTMF:
     def parse_json_string(self, input_string):
         return json.loads(input_string)
 
-    @staticmethod
-    def dtmf_sequence_is_valid(input_list):
-        """
-        Validates an input sequence for proper structure and contents.
-
-        :param input_list:
-        :return:
-        """
-        if type(input_list) is not list:
-            log.warning('input_list must be a list instance')
-            return False
-
-        if [(type(item) in DTMF.VALID_SEQUENCE_TYPES) for item in input_list].count(False) != 0:
-            log.warning('input_list contains invalid sequence type')
-            return False
-
-        for item in input_list:
-            if type(item[0]) != str or type(item[1]) != int:
-                log.debug("Type list[0]: {}".format(type(item[0])))
-                log.debug("Type list[1]: {}".format(type(item[1])))
-                log.warning('input_list must contain a list of sequences of [str, int]')
-                return False
-        return True
 
     def generate_raw_data(self):
         """
@@ -143,6 +120,30 @@ class DTMF:
         f.close()
 
     @staticmethod
+    def dtmf_sequence_is_valid(input_list):
+        """
+        Validates an input sequence for proper structure and contents.
+
+        :param input_list:
+        :return:
+        """
+        if type(input_list) is not list:
+            log.warning('input_list must be a list instance')
+            return False
+
+        if [(type(item) in DTMF.VALID_SEQUENCE_TYPES) for item in input_list].count(False) != 0:
+            log.warning('input_list contains invalid sequence type')
+            return False
+
+        for item in input_list:
+            if type(item[0]) != str or type(item[1]) != int:
+                log.debug("Type list[0]: {}".format(type(item[0])))
+                log.debug("Type list[1]: {}".format(type(item[1])))
+                log.warning('input_list must contain a list of sequences of [str, int]')
+                return False
+        return True
+
+    @staticmethod
     def generate_tone(f1, f2, _duration_in_ms):
         """
         Generates a single value representing a sample of two combined frequencies.
@@ -161,7 +162,8 @@ class DTMF:
             p = i * 1.0 / SAMPLE_RATE
             result.append(int((sin(p * f1 * pi * 2) + sin(p * f2 * pi * 2)) / 2 * scale))
         log.info(
-            "Generated {0}ms tone of {1} samples with F1: {2} F2: {3}".format(_duration_in_ms, number_of_samples, f1, f2))
+            "Generated {0}ms tone of {1} samples with F1: {2} F2: {3}".format(_duration_in_ms, number_of_samples, f1,
+                                                                              f2))
         return result
 
     def create_dtmf_wave_file(self, input_sequence, file_path, dump_to_csv=False):
@@ -171,13 +173,13 @@ class DTMF:
         :param input_sequence: list of lists or tuples of the form [['A', 100], ['S', 50], ['2', 100], ['S', 50]] or json_string of the form '[["A", 100], ["S", 50], ["2", 100], ["S", 50]]'
         :param file_path: the full path of the wav file that will be saved
         """
-        self.dtmf_sequence=input_sequence
+        self.dtmf_sequence = input_sequence
         self.generate_raw_data()
 
         try:
             os.remove('dtmf_dump.csv')
         except:
-            pass #file doesn't exist
+            pass  # file doesn't exist
 
         if dump_to_csv:
             with open('dtmf_dump.csv', 'w') as f:
@@ -192,4 +194,4 @@ if __name__ == '__main__':
     d = 100
     sample_input = [('1', d), ('S', d), ('2', d), ('S', d), ('A', d), ('S', d)]
     d = DTMF()
-    d.create_dtmf_wave_file(sample_input, file_path='test.wav',dump_to_csv=True)
+    d.create_dtmf_wave_file(sample_input, file_path='test.wav', dump_to_csv=True)
